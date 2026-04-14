@@ -25,7 +25,7 @@ flatten = lambda l : [x for s in l for x in s]
 shuffle = lambda l : random.sample(l, k=len(l))
 
 def load_dataset(dataset_path):
-    
+
     # For loading a JSON-serialized list of examples.
     if dataset_path.endswith(".json"):
         print("loading from json...")
@@ -33,6 +33,17 @@ def load_dataset(dataset_path):
             data = f.read()
             examples = json.loads(data)
             return examples
+
+    # For loading a JSONL file where each line is a JSON-encoded string.
+    if dataset_path.endswith(".jsonl"):
+        print("loading from jsonl...")
+        examples = []
+        with open(dataset_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    examples.append(json.loads(line))
+        return examples
 
     # For loading a dataset where each example is on its own line.
     with open(dataset_path, "r") as f:
@@ -81,7 +92,7 @@ def worker(model_name_or_path,
            worker_queue):
     
     # Load model.
-    m = AutoModelForCausalLM.from_pretrained(model_name_or_path)
+    m = AutoModelForCausalLM.from_pretrained(model_name_or_path, torch_dtype=torch.bfloat16)
     m.cuda(device)
     main_queue.put((device, True))
     
@@ -120,9 +131,13 @@ def main(model_name_or_path,
 
     # Load the dataset.
     examples = load_dataset(dataset_path)
-    examples = examples[:max_examples]
+
+    if max_examples and max_examples > 0 and len(examples) > max_examples:
+        # Match original released behavior: take the first max_examples rows.
+        examples = examples[:max_examples]
+
     num_examples = len(examples)
-    print(f"Loaded {num_examples} examples from {dataset_path}")
+    print(f"Loaded {num_examples} examples from {dataset_path} (first max_examples rows when capped)")
     
     # Load tokenizer and tokenize the examples.
     t = AutoTokenizer.from_pretrained(model_name_or_path)
