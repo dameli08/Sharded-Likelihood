@@ -1,3 +1,4 @@
 Model: /data/models/Qwen3.5-2B
 Run date: Tue Apr 14 12:29:47 PM +05 2026
 ------------------------------------------------
+mmlu_pro_all: p-value = 0.000004  →  CONTAMINATED (p < 0.05)
