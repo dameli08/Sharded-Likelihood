@@ -19,8 +19,8 @@ set -euo pipefail
 # ║    Qwen3.5-2B  |  qwen3-4b  |  qwen3.5-9b  |  gemma3-4b                ║
 # ║    internvl3.5-4b  |  kazllm-8b  |  (and others)                        ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
-MODEL_NAME="Qwen3.5-2B"
-MODEL_PATH="/data/models/Qwen3.5-2B"
+MODEL_NAME="Qwen3.5-4B"
+MODEL_PATH="/data/models/Qwen3.5-4B"
 
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
@@ -31,9 +31,8 @@ MODEL_PATH="/data/models/Qwen3.5-2B"
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 DATASETS=(
     #mmlu_all            # Standard MMLU (English, 4 choices)
-    #mmlu_cf_all         # MMLU counterfactual variant
+    mmlu_cf_all         # MMLU counterfactual variant
     mmlu_pro_all        # MMLU-Pro (up to 10 choices)
-    mmlu_redux_all      # MMLU-Redux (cleaned/corrected subset)
     kazmmlu_all         # KazMMLU (Kazakh, 5 choices)
     rummlu_all          # RuMMLU (Russian, 4 choices)
     MMLU_KAZ_Translation  # MMLU translated to Kazakh
