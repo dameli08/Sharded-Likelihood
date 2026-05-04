@@ -10,6 +10,9 @@
 
 set -euo pipefail
 
+DEFAULT_MODEL_ROOT="${HOME}/models"
+DEFAULT_DATASETS_DIR="${HOME}/8datasets"
+
 # ╔═══════════════════════════════════════════════════════════════════════════╗
 # ║  CHANGE THIS 1 — Model                                                   ║
 # ║                                                                           ║
@@ -19,8 +22,9 @@ set -euo pipefail
 # ║    Qwen3.5-2B  |  qwen3-4b  |  qwen3.5-9b  |  gemma3-4b                ║
 # ║    internvl3.5-4b  |  kazllm-8b  |  (and others)                        ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
-MODEL_NAME="Qwen3.5-2B"
-MODEL_PATH="/data/models/Qwen3.5-2B"
+MODEL_NAME="${MODEL_NAME:-Qwen3.5-9B}"
+MODEL_ROOT="${MODEL_ROOT:-${DEFAULT_MODEL_ROOT}}"
+MODEL_PATH="${MODEL_PATH:-${MODEL_ROOT}/${MODEL_NAME}}"
 
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
@@ -32,11 +36,10 @@ MODEL_PATH="/data/models/Qwen3.5-2B"
 DATASETS=(
     #mmlu_all            # Standard MMLU (English, 4 choices)
     #mmlu_cf_all         # MMLU counterfactual variant
-    mmlu_pro_all        # MMLU-Pro (up to 10 choices)
-    mmlu_redux_all      # MMLU-Redux (cleaned/corrected subset)
-    kazmmlu_all         # KazMMLU (Kazakh, 5 choices)
-    rummlu_all          # RuMMLU (Russian, 4 choices)
-    MMLU_KAZ_Translation  # MMLU translated to Kazakh
+    #mmlu_pro_all        # MMLU-Pro (up to 10 choices)
+    #kazmmlu_all         # KazMMLU (Kazakh, 5 choices)
+    #rummlu_all          # RuMMLU (Russian, 4 choices)
+    #MMLU_KAZ_Translation  # MMLU translated to Kazakh
     MMLU_RUS_Translation  # MMLU translated to Russian
 )
 
@@ -48,8 +51,10 @@ CONTEXT_LEN=2048            # token context window length
 STRIDE=1024                 # sliding window stride (half of context is typical)
 NUM_SHARDS=50               # number of shards
 PERMUTATIONS_PER_SHARD=100  # shuffled permutations per shard
+NUM_GPUS="${NUM_GPUS:-1}"   # visible GPU count to use when multiple are available
 RANDOM_SEED=0               # for reproducibility
 MAX_EXAMPLES=5000           # max examples to use per dataset (0 = no limit)
+DATASETS_DIR="${DATASETS_DIR:-${SHARDED_LIKELIHOOD_DATASETS_DIR:-${DEFAULT_DATASETS_DIR}}}"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Internal — do not edit below this line
@@ -62,9 +67,14 @@ MODEL_RESULTS_DIR="${RESULTS_DIR}/${MODEL_NAME}"
 # ── Validate model path ───────────────────────────────────────────────────────
 if [ ! -d "${MODEL_PATH}" ]; then
     echo "[ERROR] Model not found at: ${MODEL_PATH}"
-    echo "        Check MODEL_NAME at the top of this script."
-    echo "        Available models:"
-    ls /data/models/ | sed 's/^/          /'
+    echo "        Set MODEL_NAME/MODEL_PATH before running this script."
+    echo "        Current MODEL_ROOT: ${MODEL_ROOT}"
+    if [ -d "${MODEL_ROOT}" ]; then
+        echo "        Available models in ${MODEL_ROOT}:"
+        ls "${MODEL_ROOT}" | sed 's/^/          /'
+    else
+        echo "        Model root does not exist yet. Create it or download a model there first."
+    fi
     exit 1
 fi
 
@@ -74,13 +84,14 @@ mkdir -p "${PREPARED_DIR}" "${RESULTS_DIR}" "${MODEL_RESULTS_DIR}"
 echo "============================================================"
 echo " Step 1: Preparing datasets"
 echo "============================================================"
+echo " Dataset source dir: ${DATASETS_DIR}"
 for DATASET in "${DATASETS[@]}"; do
     JSONL="${PREPARED_DIR}/${DATASET}.jsonl"
     if [ -f "${JSONL}" ]; then
         echo "[SKIP] ${DATASET}.jsonl already exists. Delete it to re-convert."
     else
         echo "[CONVERT] ${DATASET}..."
-        python3 "${SCRIPT_DIR}/prepare_datasets.py" --dataset "${DATASET}"
+        python3 "${SCRIPT_DIR}/prepare_datasets.py" --dataset "${DATASET}" --datasets_dir "${DATASETS_DIR}"
     fi
 done
 echo ""
@@ -89,6 +100,7 @@ echo ""
 echo "============================================================"
 echo " Step 2: Running Sharded Likelihood test"
 echo "   Model : ${MODEL_PATH}"
+echo "   GPUs  : ${NUM_GPUS}"
 echo "   Shards: ${NUM_SHARDS}  |  Perms/shard: ${PERMUTATIONS_PER_SHARD}"
 echo "   Context len: ${CONTEXT_LEN}  |  Stride: ${STRIDE}"
 echo "============================================================"
@@ -119,6 +131,7 @@ for DATASET in "${DATASETS[@]}"; do
         --stride "${STRIDE}" \
         --num_shards "${NUM_SHARDS}" \
         --permutations_per_shard "${PERMUTATIONS_PER_SHARD}" \
+        --num_gpus "${NUM_GPUS}" \
         --random_seed "${RANDOM_SEED}" \
         --max_examples "${MAX_EXAMPLES}" \
         --log_file_path "${LOG_FILE}"

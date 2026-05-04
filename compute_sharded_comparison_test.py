@@ -121,6 +121,7 @@ def main(model_name_or_path,
          stride=1024,
          num_shards=50,
          permutations_per_shard=250,
+         num_gpus=None,
          random_seed=0,
          log_file_path=None,
          max_examples=5000):
@@ -145,7 +146,21 @@ def main(model_name_or_path,
 
     # Launch a Process for each GPU.
     gpus = GPUtil.getGPUs()
+    if not gpus:
+        visible_cuda_devices = os.environ.get("CUDA_VISIBLE_DEVICES", "all")
+        raise RuntimeError(
+            f"No GPUs detected by GPUtil. CUDA_VISIBLE_DEVICES={visible_cuda_devices}. "
+            "Run this script inside a GPU allocation, for example via Slurm srun/sbatch."
+        )
+
+    if num_gpus is not None:
+        requested_workers = int(num_gpus)
+        if requested_workers <= 0:
+            raise ValueError("num_gpus must be a positive integer when provided.")
+        gpus = gpus[:requested_workers]
+
     num_workers = len(gpus)
+    print(f"Using {num_workers} GPU worker(s): {[gpu.id for gpu in gpus]}")
     processes = []
     main_queue = Queue()
     worker_queues = [Queue() for _ in range(num_workers)]

@@ -44,7 +44,7 @@ FLAGS
 Here is an example which tests GPT2-XL for contamination on the BoolQ dataset:
 
 ```
-python compute_sharded_stat.py gpt2-xl boolq/dev.jsonl \
+python compute_sharded_comparison_test.py gpt2-xl boolq/dev.jsonl \
 --context_len 1024 \
 --stride 512 \
 --num_shards 50 \
@@ -55,6 +55,36 @@ python compute_sharded_stat.py gpt2-xl boolq/dev.jsonl \
 - Note that `MODEL_NAME_OR_PATH` can be either the name of a model as shown on HuggingFace (e.g. `gpt2-xl`, `mistralai/Mistral-7B-v0.1`, etc) or a path to a checkpoint directory.
 
 The test files used for generating the results in Table 2 are available in `benchmarks/`. 
+
+### Running On A New Server Or Cluster
+
+The scripts can be used without editing source files if you set paths through environment variables.
+
+- `MODEL_ROOT` defaults to `$HOME/models`
+- `MODEL_PATH` defaults to `$MODEL_ROOT/$MODEL_NAME`
+- `DATASETS_DIR` defaults to `$HOME/8datasets`
+- `NUM_GPUS` defaults to `1`
+
+Example on a Slurm cluster node:
+
+```
+srun --partition=gpu --nodelist=gpunode02 --gres=gpu:1 --cpus-per-task=8 --mem=32G --pty bash -l
+cd /home/damelikassym/Sharded-Likelihood
+
+export MODEL_NAME=Qwen3.5-2B
+export MODEL_ROOT=$HOME/models
+export MODEL_PATH=$MODEL_ROOT/$MODEL_NAME
+export DATASETS_DIR=$HOME/8datasets
+export NUM_GPUS=1
+
+bash run_contamination_check.sh
+```
+
+If your model is not already stored locally, you can download it into a user-owned directory first.
+
+```
+python download_model.py Qwen/Qwen2.5-3B-Instruct --output_dir "$HOME/models" --local_name Qwen2.5-3B-Instruct
+```
 
 ### Contamination Detection Challenge
 

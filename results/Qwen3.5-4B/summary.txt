@@ -1,3 +1,10 @@
-Model: /data/models/Qwen3.5-4B
-Run date: Tue Apr 14 12:28:17 PM +05 2026
+Model: /home/damelikassym/models/Qwen3.5-4B
+Run date: Wed Apr 15 06:15:31 CST 2026
 ------------------------------------------------
+mmlu_all: p-value = 0.013647  →  CONTAMINATED (p < 0.05)
+mmlu_cf_all: p-value = 0.000000  →  CONTAMINATED (p < 0.05)
+mmlu_pro_all: p-value = 0.000004  →  CONTAMINATED (p < 0.05)
+kazmmlu_all: p-value = 0.005322  →  CONTAMINATED (p < 0.05)
+rummlu_all: p-value = 0.000010  →  CONTAMINATED (p < 0.05)
+MMLU_KAZ_Translation: p-value = 0.010547  →  CONTAMINATED (p < 0.05)
+MMLU_RUS_Translation: p-value = 0.004192  →  CONTAMINATED (p < 0.05)

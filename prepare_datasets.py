@@ -1,9 +1,8 @@
 """
 prepare_datasets.py
 
-Converts the 8 CSV datasets from /home/dameli/8datasets/ into JSONL files
-(one plain-text example per line) that compute_sharded_comparison_test.py
-can consume directly.
+Converts the benchmark CSV datasets into JSONL files (one plain-text example
+per line) that compute_sharded_comparison_test.py can consume directly.
 
 Usage:
     python prepare_datasets.py                      # convert all 8 datasets
@@ -21,20 +20,24 @@ import argparse
 
 # ── Dataset registry ──────────────────────────────────────────────────────────
 # Each entry: (short_key, csv_path)
-DATASETS_DIR = "/home/dameli/8datasets"
-DATASETS = {
-    "mmlu_all":             os.path.join(DATASETS_DIR, "mmlu_all.csv"),
-    "mmlu_cf_all":          os.path.join(DATASETS_DIR, "mmlu_cf_all.csv"),
-    "mmlu_first100":        os.path.join(DATASETS_DIR, "mmlu_first100.csv"),
-    "mmlu_pro_all":         os.path.join(DATASETS_DIR, "mmlu_pro_all.csv"),
-    "mmlu_redux_all":       os.path.join(DATASETS_DIR, "mmlu_redux_all.csv"),
-    "kazmmlu_all":          os.path.join(DATASETS_DIR, "kazmmlu_all.csv"),
-    "rummlu_all":           os.path.join(DATASETS_DIR, "rummlu_all.csv"),
-    "MMLU_KAZ_Translation": os.path.join(DATASETS_DIR, "MMLU_KAZ_Translation.csv"),
-    "MMLU_RUS_Translation": os.path.join(DATASETS_DIR, "MMLU_RUS_Translation.csv"),
+DEFAULT_DATASETS_DIR = os.environ.get("SHARDED_LIKELIHOOD_DATASETS_DIR", "/home/dameli/8datasets")
+DATASET_FILES = {
+    "mmlu_all": "mmlu_all.csv",
+    "mmlu_cf_all": "mmlu_cf_all.csv",
+    "mmlu_first100": "mmlu_first100.csv",
+    "mmlu_pro_all": "mmlu_pro_all.csv",
+    "mmlu_redux_all": "mmlu_redux_all.csv",
+    "kazmmlu_all": "kazmmlu_all.csv",
+    "rummlu_all": "rummlu_all.csv",
+    "MMLU_KAZ_Translation": "MMLU_KAZ_Translation.csv",
+    "MMLU_RUS_Translation": "MMLU_RUS_Translation.csv",
 }
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "prepared_data")
+
+
+def build_dataset_registry(datasets_dir):
+    return {key: os.path.join(datasets_dir, filename) for key, filename in DATASET_FILES.items()}
 
 
 # ── Formatters ────────────────────────────────────────────────────────────────
@@ -155,8 +158,8 @@ def convert_csv_to_jsonl(csv_path, jsonl_path, max_examples=None):
     return count
 
 
-def convert_all(max_examples=None):
-    for key, csv_path in DATASETS.items():
+def convert_all(datasets, max_examples=None):
+    for key, csv_path in datasets.items():
         jsonl_path = os.path.join(OUTPUT_DIR, f"{key}.jsonl")
         if not os.path.exists(csv_path):
             print(f"[SKIP] {key}: file not found at {csv_path}")
@@ -165,11 +168,11 @@ def convert_all(max_examples=None):
         print(f"[OK]   {key}: {n} examples → {jsonl_path}")
 
 
-def convert_one(dataset_key, max_examples=None):
-    if dataset_key not in DATASETS:
+def convert_one(datasets, dataset_key, max_examples=None):
+    if dataset_key not in datasets:
         print(f"Unknown dataset key '{dataset_key}'. Use --list to see options.")
         return
-    csv_path = DATASETS[dataset_key]
+    csv_path = datasets[dataset_key]
     jsonl_path = os.path.join(OUTPUT_DIR, f"{dataset_key}.jsonl")
     if not os.path.exists(csv_path):
         print(f"[SKIP] file not found at {csv_path}")
@@ -184,23 +187,27 @@ def main():
     parser = argparse.ArgumentParser(description="Convert 8 CSV datasets to JSONL for Sharded Likelihood.")
     parser.add_argument("--dataset", type=str, default=None,
                         help="Convert only this dataset key (omit to convert all).")
+    parser.add_argument("--datasets_dir", type=str, default=DEFAULT_DATASETS_DIR,
+                        help="Directory containing the source CSV files.")
     parser.add_argument("--list", action="store_true",
                         help="List available dataset keys and exit.")
     parser.add_argument("--max_examples", type=int, default=None,
                         help="Cap number of examples per dataset (useful for quick tests).")
     args = parser.parse_args()
+    datasets = build_dataset_registry(args.datasets_dir)
 
     if args.list:
         print("Available dataset keys:")
-        for k, p in DATASETS.items():
+        print(f"Source directory: {args.datasets_dir}")
+        for k, p in datasets.items():
             exists = "✓" if os.path.exists(p) else "✗"
             print(f"  {exists}  {k:30s}  {p}")
         return
 
     if args.dataset:
-        convert_one(args.dataset, max_examples=args.max_examples)
+        convert_one(datasets, args.dataset, max_examples=args.max_examples)
     else:
-        convert_all(max_examples=args.max_examples)
+        convert_all(datasets, max_examples=args.max_examples)
 
 
 if __name__ == "__main__":
