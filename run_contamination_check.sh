@@ -31,11 +31,11 @@ MODEL_PATH="/data/models/Qwen3.5-4B"
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 DATASETS=(
     #mmlu_all            # Standard MMLU (English, 4 choices)
-    mmlu_cf_all         # MMLU counterfactual variant
-    mmlu_pro_all        # MMLU-Pro (up to 10 choices)
-    kazmmlu_all         # KazMMLU (Kazakh, 5 choices)
-    rummlu_all          # RuMMLU (Russian, 4 choices)
-    MMLU_KAZ_Translation  # MMLU translated to Kazakh
+    #mmlu_cf_all         # MMLU counterfactual variant
+    #mmlu_pro_all        # MMLU-Pro (up to 10 choices)
+    #kazmmlu_all         # KazMMLU (Kazakh, 5 choices)
+    #rummlu_all          # RuMMLU (Russian, 4 choices)
+    #MMLU_KAZ_Translation  # MMLU translated to Kazakh
     MMLU_RUS_Translation  # MMLU translated to Russian
 )
 
